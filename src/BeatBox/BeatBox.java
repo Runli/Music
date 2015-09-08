@@ -9,6 +9,7 @@ import java.util.ArrayList;
 
 /**
  * Created by ilnurgazizov on 08.09.15.
+ * App from Head First "Learning Java"
  */
 public class BeatBox {
     JPanel mainPanel;
