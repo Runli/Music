@@ -5,6 +5,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.*;
 import java.util.ArrayList;
 
 /**
@@ -57,6 +58,14 @@ public class BeatBox {
         JButton clear = new JButton("Clean");
         clear.addActionListener(new MyClearListener());
         buttonBox.add(clear);
+
+        JButton save = new JButton("Save");
+        save.addActionListener(new MySendListener());
+        buttonBox.add(save);
+
+        JButton savedMusic = new JButton("New");
+        savedMusic.addActionListener(new MyReadInListener());
+        buttonBox.add(savedMusic);
 
         // All names of instruments of dramm
         Box nameBox = new Box(BoxLayout.Y_AXIS);
@@ -197,5 +206,48 @@ public class BeatBox {
             event = new MidiEvent(a, tick);
         } catch(Exception ex){ex.printStackTrace();}
         return event;
+    }
+    // Сериализация схемы флажков
+    public class MySendListener implements ActionListener {
+        public void actionPerformed(ActionEvent a){
+            // Булев массив для хранения состояния каждого флажка.
+            boolean[] checkboxState = new boolean[256];
+            // Пробегаем через checkbosList (ArrayList содержащий состояния флажков),
+            // считываем состояния и добавляем полученные значения в булев массив
+            for (int i = 0; i < 256; i++) {
+                JCheckBox check = (JCheckBox) checkBoxList.get(i);
+                if (check.isSelected()){
+                    checkboxState[i] = true;
+                }
+            }
+            try {
+                FileOutputStream fileStream = new FileOutputStream(new File("Checkbox.ser"));
+                ObjectOutputStream os= new ObjectOutputStream(fileStream);
+                os.writeObject(checkboxState);
+            } catch(Exception ex){ex.printStackTrace();}
+        }
+    }
+    // Восстановление схемы
+    public class MyReadInListener implements ActionListener {
+        public void actionPerformed(ActionEvent a){
+            boolean[] checkboxState = null;
+            try {
+                FileInputStream fileIn = new FileInputStream(new File("Checkbox.ser"));
+                ObjectInputStream is = new ObjectInputStream(fileIn);
+                checkboxState = (boolean[]) is.readObject();
+            } catch(Exception ex){ex.printStackTrace();}
+            for (int i = 0; i < 256; i++) {
+                JCheckBox check = (JCheckBox) checkBoxList.get(i);
+                if (checkboxState[i]){
+                    check.setSelected(true);
+                } else {
+                    check.setSelected(false);
+                }
+            }
+            // Останавливаем проигрываение мелодии и восстанавливаем последовательность
+            // используя новые состояния флажков в ArrayList
+            sequencer.stop();
+            buildTrackAndStart();
+        }
     }
 }
