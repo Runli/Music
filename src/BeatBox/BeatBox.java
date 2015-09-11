@@ -64,7 +64,7 @@ public class BeatBox {
         JMenuItem newMenuItem = new JMenuItem("New");
         JMenuItem saveMenuItem = new JMenuItem("Save");
         newMenuItem.addActionListener(new MyReadInListener ());
-        saveMenuItem.addActionListener(new MySendListener ());
+        saveMenuItem.addActionListener(new MySendListener());
         fileMenu.add(newMenuItem);
         fileMenu.add(saveMenuItem);
         menuBar.add(fileMenu);
@@ -218,6 +218,7 @@ public class BeatBox {
         } catch(Exception ex){ex.printStackTrace();}
         return event;
     }
+
     // Сериализация схемы флажков
     public class MySendListener implements ActionListener {
         public void actionPerformed(ActionEvent a){
@@ -232,8 +233,10 @@ public class BeatBox {
                 }
             }
             try {
-                FileOutputStream fileStream = new FileOutputStream(new File("Checkbox.ser"));
-                ObjectOutputStream os= new ObjectOutputStream(fileStream);
+                JFileChooser fileSave = new JFileChooser();
+                fileSave.showSaveDialog(theFrame);
+                FileOutputStream fileStream = new FileOutputStream(fileSave.getSelectedFile());
+                ObjectOutputStream os = new ObjectOutputStream(fileStream);
                 os.writeObject(checkboxState);
             } catch(Exception ex){ex.printStackTrace();}
         }
@@ -243,7 +246,9 @@ public class BeatBox {
         public void actionPerformed(ActionEvent a){
             boolean[] checkboxState = null;
             try {
-                FileInputStream fileIn = new FileInputStream(new File("Checkbox.ser"));
+                JFileChooser fileOpen = new JFileChooser();
+                fileOpen.showOpenDialog(theFrame);
+                FileInputStream fileIn = new FileInputStream(fileOpen.getSelectedFile());
                 ObjectInputStream is = new ObjectInputStream(fileIn);
                 checkboxState = (boolean[]) is.readObject();
             } catch(Exception ex){ex.printStackTrace();}
