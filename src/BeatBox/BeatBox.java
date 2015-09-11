@@ -59,13 +59,24 @@ public class BeatBox {
         clear.addActionListener(new MyClearListener());
         buttonBox.add(clear);
 
-        JButton save = new JButton("Save");
-        save.addActionListener(new MySendListener());
-        buttonBox.add(save);
+        JMenuBar menuBar = new JMenuBar();
+        JMenu fileMenu = new JMenu("File");
+        JMenuItem newMenuItem = new JMenuItem("New");
+        JMenuItem saveMenuItem = new JMenuItem("Save");
+        newMenuItem.addActionListener(new MyReadInListener ());
+        saveMenuItem.addActionListener(new MySendListener ());
+        fileMenu.add(newMenuItem);
+        fileMenu.add(saveMenuItem);
+        menuBar.add(fileMenu);
+        theFrame.setJMenuBar(menuBar);
 
-        JButton savedMusic = new JButton("New");
-        savedMusic.addActionListener(new MyReadInListener());
-        buttonBox.add(savedMusic);
+//        JButton save = new JButton("Save");
+//        save.addActionListener(new MySendListener());
+//        buttonBox.add(save);
+//
+//        JButton savedMusic = new JButton("New");
+//        savedMusic.addActionListener(new MyReadInListener());
+//        buttonBox.add(savedMusic);
 
         // All names of instruments of dramm
         Box nameBox = new Box(BoxLayout.Y_AXIS);
