@@ -70,14 +70,6 @@ public class BeatBox {
         menuBar.add(fileMenu);
         theFrame.setJMenuBar(menuBar);
 
-//        JButton save = new JButton("Save");
-//        save.addActionListener(new MySendListener());
-//        buttonBox.add(save);
-//
-//        JButton savedMusic = new JButton("New");
-//        savedMusic.addActionListener(new MyReadInListener());
-//        buttonBox.add(savedMusic);
-
         // All names of instruments of dramm
         Box nameBox = new Box(BoxLayout.Y_AXIS);
         for (int i = 0; i < 16; i++) {
