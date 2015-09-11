@@ -10,7 +10,7 @@ import java.util.ArrayList;
 
 /**
  * Created by ilnurgazizov on 08.09.15.
- * App from Head First "Learning Java"
+ * App from Head First "Learning Java" + some my new features and updates
  */
 public class BeatBox {
     JPanel mainPanel;
