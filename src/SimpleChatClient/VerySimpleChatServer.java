@@ -41,7 +41,6 @@ public class VerySimpleChatServer {
     public class ClientHandler implements Runnable {
         BufferedReader reader;
         Socket sock;
-
         public ClientHandler(Socket clientSocket){
             try {
                 sock = clientSocket;
