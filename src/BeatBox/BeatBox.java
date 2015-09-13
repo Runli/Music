@@ -8,6 +8,7 @@ import java.awt.event.ActionListener;
 import java.io.*;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.Vector;
 
 /**
@@ -162,13 +163,13 @@ public class BeatBox {
     }
     // Тут все происходит! Преобразуем состояния флажков в MIDI-события и добавляем их на дорожку
     public void buildTrackAndStart(){
-        int[] trackList = null; //Создаем массив из 16 элементов, чтобы хранить значения для каждого инструмента, на все 16 тактов.
+        ArrayList<Integer> trackList = null; //Создаем массив из 16 элементов, чтобы хранить значения для каждого инструмента, на все 16 тактов.
 
         sequence.deleteTrack(track); // Избавляемся от старой дорожки и создаем новую.
         track = sequence.createTrack();
 
         for (int i = 0; i < 16; i++) { // Делаем это для каждого из 16 рядов
-            trackList = new int[16];
+            trackList = new ArrayList<Integer>();
 
             int key = instruments[i]; // Задаем клавишу, которая представляет инструмент.
             // Массив содержит MIDI-числа для каждого инструмента
@@ -176,13 +177,13 @@ public class BeatBox {
             for (int j = 0; j < 16; j++) { // делаем это для каждого такта текущего ряда
                 JCheckBox jc = (JCheckBox) checkBoxList.get(j + (16 * i));
                 if ( jc.isSelected()){
-                    trackList[j] = key;
+                    trackList.add(new Integer(key));
                 } else {
-                    trackList[j] = 0;
+                    trackList.add(null);
                 }
             }
             makeTracks(trackList); // Для этого инструмента и для всех 16 тактов создаем события и добавляем их на дорожку
-            track.add(makeEvent(176, 1, 127, 0, 16));
+//            track.add(makeEvent(176, 1, 127, 0, 16));
         }
 
         track.add(makeEvent(192, 9, 1, 0, 15)); // мы всегда должны быть уверены, что событие на ткт 16 существует(они идут от 0 до 15)
@@ -237,13 +238,14 @@ public class BeatBox {
     // Метод создает события для одного инструмента за каждый проход цикла для всех 16 тактов.
     // Можно получить int[] дял Bass drum, и каждый элемент массива будет содержать либо клавишу этого инструмента, либо ноль.
     // Если это ноль, то инструмент не должен играть на текущем такте. Иначе нужно создать событие и добавить его в дорожку.
-    public void makeTracks(int[] list){
+    public void makeTracks(ArrayList list){
+        Iterator it = list.iterator();
         for (int i = 0; i < 16; i++) {
-            int key = list[i];
-
-            if (key != 0){
-                track.add(makeEvent(144, 9, key, 100, i)); // Создаем события включения и выключения
-                track.add(makeEvent(128, 9, key, 100, i + 1)); // и добавляем их в дорожку.
+            Integer num = (Integer) it.next();
+            if (num != null){
+                int numKey = num.intValue();
+                track.add(makeEvent(144, 9, numKey, 100, i)); // Создаем события включения и выключения
+                track.add(makeEvent(128, 9, numKey, 100, i + 1)); // и добавляем их в дорожку.
             }
         }
     }
