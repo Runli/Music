@@ -9,6 +9,7 @@ import java.util.Iterator;
 
 /**
  * Created by ilnurgazizov on 14.09.15.
+ * Server for BeatBox app
  */
 public class MusicServer {
     ArrayList<ObjectOutputStream> clientOutputStreams;
