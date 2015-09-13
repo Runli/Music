@@ -6,7 +6,9 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.*;
+import java.net.Socket;
 import java.util.ArrayList;
+import java.util.Vector;
 
 /**
  * Created by ilnurgazizov on 08.09.15.
@@ -20,13 +22,39 @@ public class BeatBox {
     Track track;
     JFrame theFrame;
 
+    String userName;
+    ObjectInputStream in;
+    ObjectOutputStream out;
+    JTextField userMessage;
+    JList incomingList;
+    Vector<String> listVector = new Vector<String>();
+
     String[] instrumentNames = {"Bass Drum", "Closed Hi-Hat", "Open Hi-Hat", "Acoustic Snare", "Crash Cymbal",
         "Hand Clap", "High Tom", "Hi Bongo", "Maracas", "Whistle", "Low Conga", "Cowbell", "Vibraslap", "Low-mid Tom",
         "High Agogo", "Open Hi Conga"};
     int[] instruments = {35, 42, 46, 38, 49, 39, 50, 60, 70, 72, 64, 56, 58, 47, 67, 63};
 
     public static void main(String[] args) {
-        new BeatBox().buildGui();
+        new BeatBox().startUp(args[0]);
+    }
+
+    public void startUp(String name){
+        userName = name;
+        // ОТкрываем соединение с сервером
+        try {
+            Socket sock = new Socket("127.0.0.1", 4242);
+            out = new ObjectOutputStream(sock.getOutputStream());
+            in = new ObjectInputStream(sock.getInputStream());
+
+            Thread remote = new Thread(new RemoteReader());
+            remote.start();
+
+        } catch(Exception ex) {
+            System.out.println("Couldn`t connect - you`ll have to play alone");
+        }
+
+        setUpMidi();
+        buildGui();
     }
 
     public void buildGui(){
@@ -59,6 +87,24 @@ public class BeatBox {
         clear.addActionListener(new MyClearListener());
         buttonBox.add(clear);
 
+        JButton sendIt = new JButton("SendIt");
+        sendIt.addActionListener(new MySendListener());
+        buttonBox.add(sendIt);
+
+        userMessage = new JTextField();
+        buttonBox.add(userMessage);
+
+        // JList - компонент в котором отображаются входящие сообщения, которые можно выбирать из списка,
+        // а не только просматривать.
+        // Благодаря этому вы вправе загружать и воспроизводить прикрепляемые к ним музыкальные шаблоны.
+        incomingList = new JList();
+        incomingList.addListSelectionListener(new MyListSelectionListener());
+        incomingList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        JScrollPane theList = new JScrollPane(incomingList);
+        buttonBox.add(theList);
+        incomingList.setListData(listVector); // Нет начальных данных
+
+        // Adding Menu Bar with "Save" and "New" items
         JMenuBar menuBar = new JMenuBar();
         JMenu fileMenu = new JMenu("File");
         JMenuItem newMenuItem = new JMenuItem("New");
@@ -75,6 +121,7 @@ public class BeatBox {
         for (int i = 0; i < 16; i++) {
             nameBox.add(new Label(instrumentNames[i]));
         }
+
         // Add to our panel buttonBox and nameBox
         background.add(BorderLayout.EAST, buttonBox);
         background.add(BorderLayout.WEST, nameBox);
@@ -83,7 +130,7 @@ public class BeatBox {
 
         GridLayout grid = new GridLayout(16, 16);
         grid.setVgap(1);
-        grid.setHgap(1);
+        grid.setHgap(2);
         mainPanel = new JPanel(grid);
         background.add(BorderLayout.CENTER, mainPanel);
 
