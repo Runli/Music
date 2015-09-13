@@ -2,12 +2,15 @@ package BeatBox;
 
 import javax.sound.midi.*;
 import javax.swing.*;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.ListSelectionListener;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.*;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Vector;
 
@@ -29,6 +32,9 @@ public class BeatBox {
     JTextField userMessage;
     JList incomingList;
     Vector<String> listVector = new Vector<String>();
+    int nextNum;
+    HashMap<String, boolean[]> otherSeqsMap = new HashMap<String, boolean[]>();
+    Sequence mySequence = null;
 
     String[] instrumentNames = {"Bass Drum", "Closed Hi-Hat", "Open Hi-Hat", "Acoustic Snare", "Crash Cymbal",
         "Hand Clap", "High Tom", "Hi Bongo", "Maracas", "Whistle", "Low Conga", "Cowbell", "Vibraslap", "Low-mid Tom",
@@ -63,10 +69,10 @@ public class BeatBox {
         theFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         BorderLayout layout = new BorderLayout();
         JPanel background = new JPanel(layout);
-        background.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10)); // Пустая граница позволяет создать поля между краями панели и местом размещения компонентов.
+        background.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10)); /** Пустая граница позволяет создать поля между краями панели и местом размещения компонентов. */
 
-        checkBoxList = new ArrayList<JCheckBox>(); // For all checkboxes
-        Box buttonBox = new Box(BoxLayout.Y_AXIS); // For Start Stop Tempo Up and Tempo Down buttons
+        checkBoxList = new ArrayList<JCheckBox>(); /** For all checkboxes */
+        Box buttonBox = new Box(BoxLayout.Y_AXIS); /** For Start Stop Tempo Up and Tempo Down buttons */
 
         JButton start = new JButton("Start");
         start.addActionListener(new MyStartListener());
@@ -95,17 +101,18 @@ public class BeatBox {
         userMessage = new JTextField();
         buttonBox.add(userMessage);
 
-        // JList - компонент в котором отображаются входящие сообщения, которые можно выбирать из списка,
-        // а не только просматривать.
-        // Благодаря этому вы вправе загружать и воспроизводить прикрепляемые к ним музыкальные шаблоны.
+        /** JList - компонент в котором отображаются входящие сообщения, которые можно выбирать из списка,
+        * а не только просматривать.
+        * Благодаря этому вы вправе загружать и воспроизводить прикрепляемые к ним музыкальные шаблоны.
+        */
         incomingList = new JList();
         incomingList.addListSelectionListener(new MyListSelectionListener());
         incomingList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         JScrollPane theList = new JScrollPane(incomingList);
         buttonBox.add(theList);
-        incomingList.setListData(listVector); // Нет начальных данных
+        incomingList.setListData(listVector); /** Нет начальных данных */
 
-        // Adding Menu Bar with "Save" and "New" items
+        /** Adding Menu Bar with "Save" and "New" items */
         JMenuBar menuBar = new JMenuBar();
         JMenu fileMenu = new JMenu("File");
         JMenuItem newMenuItem = new JMenuItem("New");
@@ -117,13 +124,13 @@ public class BeatBox {
         menuBar.add(fileMenu);
         theFrame.setJMenuBar(menuBar);
 
-        // All names of instruments of dramm
+        /** All names of instruments of dramm */
         Box nameBox = new Box(BoxLayout.Y_AXIS);
         for (int i = 0; i < 16; i++) {
             nameBox.add(new Label(instrumentNames[i]));
         }
 
-        // Add to our panel buttonBox and nameBox
+        /** Add to our panel buttonBox and nameBox */
         background.add(BorderLayout.EAST, buttonBox);
         background.add(BorderLayout.WEST, nameBox);
 
@@ -135,8 +142,9 @@ public class BeatBox {
         mainPanel = new JPanel(grid);
         background.add(BorderLayout.CENTER, mainPanel);
 
-        // Создаем флажки, присваиваем им значения false (чтобы они не были установлены),
-        // а затем добавляем их в массив ArrayList и на панель
+        /** Создаем флажки, присваиваем им значения false (чтобы они не были установлены),
+        * а затем добавляем их в массив ArrayList и на панель
+         */
         for (int i = 0; i < 256; i++){
             JCheckBox c = new JCheckBox();
             c.setSelected(false);
@@ -150,31 +158,32 @@ public class BeatBox {
         theFrame.pack();
         theFrame.setVisible(true);
     }
-    // Method for setup Midi
-    // Обычный Midi-код для получения синтезатора, сиквинсера и дорожки
+    /** Method for setup Midi
+    * Обычный Midi-код для получения синтезатора, сиквинсера и дорожки
+     */
     public void setUpMidi(){
         try{
             sequencer = MidiSystem.getSequencer();
             sequencer.open();
-            sequence = new Sequence(Sequence.PPQ, 4); // создаем последовательность и дорожку
+            sequence = new Sequence(Sequence.PPQ, 4); /** создаем последовательность и дорожку */
             track = sequence.createTrack();
             sequencer.setTempoInBPM(120); //
         }catch(Exception ex) {ex.printStackTrace();}
     }
-    // Тут все происходит! Преобразуем состояния флажков в MIDI-события и добавляем их на дорожку
+    /** Тут все происходит! Преобразуем состояния флажков в MIDI-события и добавляем их на дорожку */
     public void buildTrackAndStart(){
-        ArrayList<Integer> trackList = null; //Создаем массив из 16 элементов, чтобы хранить значения для каждого инструмента, на все 16 тактов.
+        ArrayList<Integer> trackList = null; /**Создаем массив из 16 элементов, чтобы хранить значения для каждого инструмента, на все 16 тактов.*/
 
-        sequence.deleteTrack(track); // Избавляемся от старой дорожки и создаем новую.
+        sequence.deleteTrack(track); /** Избавляемся от старой дорожки и создаем новую.*/
         track = sequence.createTrack();
 
-        for (int i = 0; i < 16; i++) { // Делаем это для каждого из 16 рядов
+        for (int i = 0; i < 16; i++) { /** Делаем это для каждого из 16 рядов */
             trackList = new ArrayList<Integer>();
 
-            int key = instruments[i]; // Задаем клавишу, которая представляет инструмент.
-            // Массив содержит MIDI-числа для каждого инструмента
+            int key = instruments[i]; /** Задаем клавишу, которая представляет инструмент.*/
+            /** Массив содержит MIDI-числа для каждого инструмента */
 
-            for (int j = 0; j < 16; j++) { // делаем это для каждого такта текущего ряда
+            for (int j = 0; j < 16; j++) { /** делаем это для каждого такта текущего ряда */
                 JCheckBox jc = (JCheckBox) checkBoxList.get(j + (16 * i));
                 if ( jc.isSelected()){
                     trackList.add(new Integer(key));
@@ -182,70 +191,69 @@ public class BeatBox {
                     trackList.add(null);
                 }
             }
-            makeTracks(trackList); // Для этого инструмента и для всех 16 тактов создаем события и добавляем их на дорожку
+            makeTracks(trackList); /** Для этого инструмента и для всех 16 тактов создаем события и добавляем их на дорожку */
 //            track.add(makeEvent(176, 1, 127, 0, 16));
         }
 
-        track.add(makeEvent(192, 9, 1, 0, 15)); // мы всегда должны быть уверены, что событие на ткт 16 существует(они идут от 0 до 15)
-                                                // Иначе BeatBox может не пройти все 16 тактов, перед тем как заново начнет последовательность.
+        track.add(makeEvent(192, 9, 1, 0, 15)); /** мы всегда должны быть уверены, что событие на ткт 16 существует(они идут от 0 до 15)
+                                                 Иначе BeatBox может не пройти все 16 тактов, перед тем как заново начнет последовательность. */
         try{
             sequencer.setSequence(sequence);
-            sequencer.setLoopCount(sequencer.LOOP_CONTINUOUSLY); // Позволяет задать количество повторений цикла или, ка в этом случае, непрерывный цикл.
+            sequencer.setLoopCount(sequencer.LOOP_CONTINUOUSLY); /** Позволяет задать количество повторений цикла или, ка в этом случае, непрерывный цикл. */
             sequencer.start();
             sequencer.setTempoInBPM(120);
-        } catch(Exception e) {e.printStackTrace();} // Теперь мы проигрываем мелодию!
-
+        } catch(Exception e) {e.printStackTrace();} /** Теперь мы проигрываем мелодию! */
     }
-    // Inner class for start
+    /** Inner class for start */
     public class MyStartListener implements ActionListener{
         public void actionPerformed(ActionEvent a){
             buildTrackAndStart();
         }
     }
-    // Inner class for stop
+    /** Inner class for stop */
     public class MyStopListener implements ActionListener{
         public void actionPerformed(ActionEvent a){
             sequencer.stop();
         }
     }
-    //Inner class for increase Temp of track
+    /** Inner class for increase Temp of track */
     public class MyUpTempoListener implements ActionListener{
         public void actionPerformed(ActionEvent a){
             float tempoFactor = sequencer.getTempoFactor();
             sequencer.setTempoFactor((float) (tempoFactor * 1.03));
         }
     }
-    // Inner class for deacrease Tempo of track
+    /** Inner class for deacrease Tempo of track */
     public class MyDownTempoListener implements ActionListener{
         public void actionPerformed(ActionEvent a){
             float tempoFactor = sequencer.getTempoFactor();
             sequencer.setTempoFactor((float) (tempoFactor * 0.97));
         }
     }
-    // Inner class for clear all check box
+    /** Inner class for clear all check box */
     public class MyClearListener implements ActionListener{
         public void actionPerformed(ActionEvent a){
             ClearCheckBox(checkBoxList);
         }
     }
-    // Method which clean all check boxes in mainPanel
+    /** Method which clean all check boxes in mainPanel */
     public void ClearCheckBox(ArrayList<JCheckBox> checkBoxList){
         for (JCheckBox check : checkBoxList){
             check.setSelected(false);
         }
     }
-
-    // Метод создает события для одного инструмента за каждый проход цикла для всех 16 тактов.
-    // Можно получить int[] дял Bass drum, и каждый элемент массива будет содержать либо клавишу этого инструмента, либо ноль.
-    // Если это ноль, то инструмент не должен играть на текущем такте. Иначе нужно создать событие и добавить его в дорожку.
+    /** Метод создает события для одного инструмента за каждый проход цикла для всех 16 тактов.
+    * Можно получить int[] дял Bass drum, и каждый элемент массива будет содержать либо клавишу этого инструмента, либо ноль.
+    * Если это ноль, то инструмент не должен играть на текущем такте. Иначе нужно создать событие и добавить его в дорожку.
+     */
     public void makeTracks(ArrayList list){
         Iterator it = list.iterator();
         for (int i = 0; i < 16; i++) {
             Integer num = (Integer) it.next();
             if (num != null){
                 int numKey = num.intValue();
-                track.add(makeEvent(144, 9, numKey, 100, i)); // Создаем события включения и выключения
-                track.add(makeEvent(128, 9, numKey, 100, i + 1)); // и добавляем их в дорожку.
+                track.add(makeEvent(144, 9, numKey, 100, i)); /** Создаем события включения и выключения */
+                track.add(makeEvent(128, 9, numKey, 100, i + 1)); /** и добавляем их в дорожку. */
             }
         }
     }
@@ -260,29 +268,105 @@ public class BeatBox {
         return event;
     }
 
-    // Сериализация схемы флажков
+    /** Сериализация схемы флажков и строковое сообщение */
     public class MySendListener implements ActionListener {
         public void actionPerformed(ActionEvent a){
-            // Булев массив для хранения состояния каждого флажка.
+            /** Булев массив для хранения состояния каждого флажка. */
             boolean[] checkboxState = new boolean[256];
-            // Пробегаем через checkbosList (ArrayList содержащий состояния флажков),
-            // считываем состояния и добавляем полученные значения в булев массив
+            /** Пробегаем через checkbosList (ArrayList содержащий состояния флажков),
+            * считываем состояния и добавляем полученные значения в булев массив
+             */
             for (int i = 0; i < 256; i++) {
                 JCheckBox check = (JCheckBox) checkBoxList.get(i);
                 if (check.isSelected()){
                     checkboxState[i] = true;
                 }
             }
+            String messageToSend = null;
             try {
-                JFileChooser fileSave = new JFileChooser();
-                fileSave.showSaveDialog(theFrame);
-                FileOutputStream fileStream = new FileOutputStream(fileSave.getSelectedFile());
-                ObjectOutputStream os = new ObjectOutputStream(fileStream);
-                os.writeObject(checkboxState);
-            } catch(Exception ex){ex.printStackTrace();}
+                out.writeObject(userName + nextNum++ + ": " + userMessage.getText());
+                out.writeObject(checkboxState);
+//                JFileChooser fileSave = new JFileChooser();
+//                fileSave.showSaveDialog(theFrame);
+//                FileOutputStream fileStream = new FileOutputStream(fileSave.getSelectedFile());
+//                ObjectOutputStream os = new ObjectOutputStream(fileStream);
+//                os.writeObject(checkboxState);
+            } catch(Exception ex){
+                System.out.println("Sorry dude. Couldn`t send it to the server.");
+                ex.printStackTrace();
+            }
+            userMessage.setText("");
         }
     }
-    // Восстановление схемы
+    /** ListSelectionListener срабатывает когда пользователь выбирает сообщения из списка.
+    * При этом мы сразу загружаем соответствующий музыкальный шаблон (хранящийся в переменной otherSeqsMap типа HashMap)
+    * и указываем проигрывать его. Мы добавили несколько условий if из-за особенностей, связанных с получением
+    * событий ListSelectionListener
+     */
+    public class MyListSelectionListener implements ListSelectionListener{
+        public void valueChanged(ListSelectionEvent le){
+            if (!le.getValueIsAdjusting()){
+                String selected = (String) incomingList.getSelectedValue();
+                if (selected != null){
+                    /** Переходим к отображению и изменяем последовательность */
+                    boolean[] selectedState = (boolean[]) otherSeqsMap.get(selected);
+                    changeSequence(selectedState);
+                    sequencer.stop();
+                    buildTrackAndStart();
+                }
+            }
+        }
+    }
+    /**
+     Задача потока - читать данные, присылаемые сервером.
+     В этом коде под данными понимаются два сериализованных объекта: строковое сообщение и музыкальная
+     последовательность (ArrayList с состояниями флажков)
+     Когда приходит сообщение, мы считываем (десеривализуем) два объекта (само сообщение и ArrayList с булевыми состояниями флажков)
+     и добавляем полученный результат в компонент JList.
+     Добавление происходит в два этапа: помещаем данные списка в объект Vector(устаревшиц аналог ArrayList)
+     а затем используем его в качестве источника, который говорит JList что именно нужно отображать.
+     */
+    public class RemoteReader implements Runnable{
+        boolean[] checkboxState = null;
+        String nameToShow = null;
+        Object obj = null;
+        public void run(){
+            try{
+                while ((obj = in.readObject()) != null ){
+                    System.out.println("got an object from server");
+                    System.out.println(obj.getClass());
+                    String nameToShow = (String) obj;
+                    checkboxState = (boolean[]) in.readObject();
+                    otherSeqsMap.put(nameToShow, checkboxState);
+                    listVector.add(nameToShow);
+                    incomingList.setListData(listVector);
+                }
+            } catch (Exception ex) {ex.printStackTrace();}
+        }
+    }
+
+    /** Этот метод вызывается когда пользователь выбирает пункт из списка.
+     Мы немедленно устанавливаем выбранный шаблон
+     */
+    public class MyPlayMineListener implements ActionListener{
+        public void actionPerformed(ActionEvent a){
+            if (mySequence != null){
+                sequence = mySequence; /** Восстановление до оригинальной последовательности */
+            }
+        }
+    }
+    private void changeSequence(boolean[] checkboxState) {
+        for (int i = 0; i < 256; i++) {
+            JCheckBox check = (JCheckBox) checkBoxList.get(i);
+            if (checkboxState[i]){
+                check.setSelected(true);
+            } else {
+                check.setSelected(false);
+            }
+        }
+    }
+
+    /** Восстановление схемы */
     public class MyReadInListener implements ActionListener {
         public void actionPerformed(ActionEvent a){
             boolean[] checkboxState = null;
@@ -301,8 +385,9 @@ public class BeatBox {
                     check.setSelected(false);
                 }
             }
-            // Останавливаем проигрываение мелодии и восстанавливаем последовательность
-            // используя новые состояния флажков в ArrayList
+            /** Останавливаем проигрываение мелодии и восстанавливаем последовательность
+             используя новые состояния флажков в ArrayList
+             */
             sequencer.stop();
             buildTrackAndStart();
         }
