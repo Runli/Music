@@ -16,7 +16,7 @@ import java.util.Vector;
 
 /**
  * Created by ilnurgazizov on 08.09.15.
- * App from Head First "Learning Java" + some my new features and updates
+ * App BeatBox from Head First "Learning Java" + some my new features and updates
  */
 public class BeatBox {
     JPanel mainPanel;
@@ -66,12 +66,12 @@ public class BeatBox {
 
     public void buildGui(){
         theFrame = new JFrame("Cyber BeatBox");
-        theFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         BorderLayout layout = new BorderLayout();
         JPanel background = new JPanel(layout);
         background.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10)); /** Пустая граница позволяет создать поля между краями панели и местом размещения компонентов. */
 
         checkBoxList = new ArrayList<JCheckBox>(); /** For all checkboxes */
+
         Box buttonBox = new Box(BoxLayout.Y_AXIS); /** For Start Stop Tempo Up and Tempo Down buttons */
 
         JButton start = new JButton("Start");
@@ -152,9 +152,10 @@ public class BeatBox {
             mainPanel.add(c);
         }
 
-        setUpMidi();
+//        setUpMidi();
 
         theFrame.setBounds(50, 50, 300, 300);
+        theFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         theFrame.pack();
         theFrame.setVisible(true);
     }
@@ -168,7 +169,7 @@ public class BeatBox {
             sequence = new Sequence(Sequence.PPQ, 4); /** создаем последовательность и дорожку */
             track = sequence.createTrack();
             sequencer.setTempoInBPM(120); //
-        }catch(Exception ex) {ex.printStackTrace();}
+        } catch(Exception ex) {ex.printStackTrace();}
     }
     /** Тут все происходит! Преобразуем состояния флажков в MIDI-события и добавляем их на дорожку */
     public void buildTrackAndStart(){
@@ -179,12 +180,10 @@ public class BeatBox {
 
         for (int i = 0; i < 16; i++) { /** Делаем это для каждого из 16 рядов */
             trackList = new ArrayList<Integer>();
-
-            int key = instruments[i]; /** Задаем клавишу, которая представляет инструмент.*/
             /** Массив содержит MIDI-числа для каждого инструмента */
-
             for (int j = 0; j < 16; j++) { /** делаем это для каждого такта текущего ряда */
                 JCheckBox jc = (JCheckBox) checkBoxList.get(j + (16 * i));
+                int key = instruments[i]; /** Задаем клавишу, которая представляет инструмент.*/
                 if ( jc.isSelected()){
                     trackList.add(new Integer(key));
                 } else {
